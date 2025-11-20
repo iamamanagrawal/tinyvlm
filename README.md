@@ -54,6 +54,8 @@ python main.py
 
 Note: Make sure you use w&b to monitor the training. If you want to change the configurations (batch size, gradient accumulation), you can take a look at ```VLMConfig``` in the ```main.py``` file.
 
+The checkpoint for the modality projector can be found [here](https://drive.google.com/drive/folders/1UV8tv9igWMFoj1abi2cpNzfOhcB4F5Kx?usp=sharing).
+
 ### Results
 
 
