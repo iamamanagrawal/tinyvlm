@@ -73,7 +73,7 @@ class VisionLanguageModel(nn.Module):
         input_ids: torch.Tensor,
         attention_mask: torch.Tensor,
         labels: torch.Tensor | None = None,
-    ) -> torch.Tensor:
+    ) -> tuple[torch.Tensor, torch.Tensor | None]:
         
         # Process images through vision encoder
         vision_outputs = self.vision_encoder(pixel_values=pixel_values).last_hidden_state  ## (batch_size, 196, 768)
@@ -103,10 +103,10 @@ class VisionLanguageModel(nn.Module):
         
         return logits, loss
     
-    def from_pretrained_projector(self, projector_path: str) -> None:
+    def from_pretrained_projector(self, projector_path: str) -> "VisionLanguageModel":
         state_dict = torch.load(projector_path, map_location='cpu')
         self.projector.load_state_dict(state_dict)
-        return None
+        return self
 
     @torch.no_grad()
     def generate(

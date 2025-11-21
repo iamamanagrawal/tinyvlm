@@ -10,7 +10,7 @@ from transformers import get_cosine_schedule_with_warmup, AutoTokenizer
 
 from src.model import VisionLanguageModel
 from src.ingest import DataLoaderLite, chat_template
-from src.utils import EXAMPLE_PROMPT, IMAGE_PROMPT_TEMPLATE
+from src.utils import EXAMPLE_PROMPT, IMAGE_PROMPT_TEMPLATE, PROJECTOR_PATH
 
 ## init the weight & biases monitoring service
 wandb.init(project="TinyVLM", name="TinyVLM-Training")
@@ -137,7 +137,7 @@ class Trainer:
                 "val/loss": val_loss.item()
             })
 
-        torch.save(self.model.projector.state_dict(), "models/projection_checkpoint.pth")
+        torch.save(self.model.projector.state_dict(), PROJECTOR_PATH)
         logging.info("Epoch training complete.")
 
         return None

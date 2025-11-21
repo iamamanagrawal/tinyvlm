@@ -59,14 +59,31 @@ The checkpoint for the modality projector can be found [here](https://drive.goog
 ### Results
 
 
-| Training Loss | Validation Loss | Learning Rate | Gradient Noem |
+| Training Loss | Validation Loss | Learning Rate | Gradient Norm |
 |---|---|---|---|
 | <img src="assets/train_loss.png" alt="Sample 1" width="400"> | <img src="assets/val_loss.png" alt="Sample 1" width="400"> | <img src="assets/lr.png" alt="Sample 1" width="400"> | <img src="assets/grad_norm.png" alt="Sample 1" width="400"> |
 -----------
 
+You can also test the inference and the performace by running ``` python tests/infer.py```. The following is the output generation.
+
+```txt
+=== Inference Example buildings.png ===
+Image Path: buildings.png
+Generated Text: the skyline of the city is a breathtaking sight, with the city skyline rising above the city skyline, creating a stunning view of the city skyline. the city skyline is a stunning sight, with the city skyline rising above the
+=========================
+=== Inference Example bird.png ===
+Image Path: bird.png
+Generated Text: The birds are perched on the branches of a cherry tree, their beaks and beaks of feathers glistening in the sunlight. The birds are perched on the branches of a cherry tree, their beaks and beaks of feathers glistening
+=========================
+=== Inference Example beach.png ===
+Image Path: beach.png
+Generated Text: The beach is a popular destination for beach lovers, and the beach itself is a popular destination for people who love to relax and unwind. The beach is a popular destination for people who love to relax and unwind. The beach is a popular destination
+=========================
+````
+
+The result shows that the mapping is doing decent, atleast it tries to understand a high level understanding of images which is good considering the size of the model. But for some images, the model doesn't generate anything. So, there is a good room for improvement in terms of pretrained model choices, modality projector architecture, dataset chosen (since, its bit noisy) and training configurations!
 
 ### ToDos
 
-- [ ] Add a model inference script
 - [ ] Finetune the model similar to Llava paper on downstream tasks
 - [ ] Benchmark the results on downstream tasks

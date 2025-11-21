@@ -33,6 +33,7 @@ LOCAL_DATASET_PATH = "data/LLaVA-CC3M-Pretrain-595K"
 ## Model paths
 VISION_ENCODER_PATH = "models/siglip-base-patch16-224"
 LANGUAGE_MODEL_PATH = "models/SmolLM2-135M-Instruct"
+PROJECTOR_PATH = "models/projection_checkpoint.pth"
 
 ## Example Prompt
 EXAMPLE_PROMPT = {
