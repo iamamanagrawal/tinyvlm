@@ -11,28 +11,22 @@ from transformers import (
 
 
 ## Token information
-NUM_IMAGE_TOKENS = 49
 TOKENS = {
     "EOT": "<|endoftext|>",
     "im_start": "<|im_start|>",
     "im_end": "<|im_end|>",
 }
 SPECIAL_TOKENS = {
-    "img_start": "<|img_start|>",
-    "img_end": "<|img_end|>",
-    "img_token": "<|img_token|>",
+    "image_token": "<image>",
     "pad_token": "<|pad|>",
 }
-
-## Prompt Template
-IMAGE_PROMPT_TEMPLATE = f"{SPECIAL_TOKENS['img_start']}{SPECIAL_TOKENS['img_token'] * NUM_IMAGE_TOKENS}{SPECIAL_TOKENS['img_end']}"
 
 ## Dataset local and remote paths
 LOCAL_DATASET_PATH = "data/LLaVA-CC3M-Pretrain-595K"
 
 ## Model paths
 VISION_ENCODER_PATH = "models/siglip-base-patch16-224"
-LANGUAGE_MODEL_PATH = "models/SmolLM2-135M-Instruct"
+LANGUAGE_MODEL_PATH = "models/SmolLM2-360M-Instruct"
 PROJECTOR_PATH = "models/projection_checkpoint.pth"
 
 ## Example Prompt
@@ -44,15 +38,13 @@ EXAMPLE_PROMPT = {
 }
 
 
-def get_language_model_and_tokenizer(path: str, special_tokens: dict):
+def get_language_model_and_tokenizer(path: str, special_tokens: dict = SPECIAL_TOKENS):
     tokenizer = AutoTokenizer.from_pretrained(path)
     tokenizer.add_special_tokens(
         {"additional_special_tokens": list(special_tokens.values())}
     )
     tokenizer.pad_token = special_tokens['pad_token']
-    tokenizer.image_token = special_tokens['img_token']
-    tokenizer.img_start_token = special_tokens['img_start']
-    tokenizer.img_end_token = special_tokens['img_end']
+    tokenizer.image_token = special_tokens['image_token']
 
     language_model = AutoModelForCausalLM.from_pretrained(path)
     language_model.resize_token_embeddings(len(tokenizer))

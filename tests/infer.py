@@ -3,18 +3,18 @@
 """
 
 import os
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import logging
 
 from src.inference import inference
 from src.model import VisionLanguageModel
 from src.utils import (
-    PROJECTOR_PATH,
-    get_vision_processor_and_model,
-    get_language_model_and_tokenizer,
-    LANGUAGE_MODEL_PATH,
-    VISION_ENCODER_PATH,
-    SPECIAL_TOKENS,
+    PROJECTOR_PATH, LANGUAGE_MODEL_PATH, VISION_ENCODER_PATH, SPECIAL_TOKENS,
+    get_vision_processor_and_model, get_language_model_and_tokenizer,
+)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
 def main():
@@ -31,7 +31,7 @@ def main():
     model = VisionLanguageModel(
         vision_encoder=vision_encoder,
         language_model=language_model,
-        image_token_id=tokenizer(SPECIAL_TOKENS['img_token']).input_ids[0],
+        image_token_id=tokenizer.convert_tokens_to_ids(SPECIAL_TOKENS['image_token']),
     )
 
     model = model.from_pretrained_projector(PROJECTOR_PATH)
@@ -55,10 +55,10 @@ def main():
             max_new_tokens=50,
         )
 
-        print(f"=== Inference Example {image_path} ===")
-        print(f"Image Path: {image_path}")
-        print(f"Generated Text: {generated_text}")
-        print("=========================")
+        logging.info(f"=== Inference Example {image_path} ===")
+        logging.info(f"Image Path: {image_path}")
+        logging.info(f"Generated Text: {generated_text}")
+        logging.info("=========================")
 
     return None
 

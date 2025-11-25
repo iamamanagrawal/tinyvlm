@@ -2,6 +2,8 @@
 This script defines
     - Configuration for the Vision-Language Model (VLMConfig)
     - Vision-Language Model architecture (VisionLanguageModel) with a forward method
+    - A method to load pretrained weights for the projector module
+    - A generate method for text generation given image and prompts.
 """
 
 import torch
@@ -23,17 +25,15 @@ class VisionProjector(nn.Module):
         self.apply(self.__init_weights__)
 
     def __init_weights__(self, module):
+        """Initialize the weights of the VisionProjector."""
         if isinstance(module, nn.Linear):
             nn.init.xavier_uniform_(module.weight)
             if module.bias is not None:
                 nn.init.zeros_(module.bias)
 
     def forward(self, x):
-        x1 = self.gate_proj(x)
-        x2 = self.up_proj(x)
-        x = self.act_fn(x1) * x2
-        x = self.down_proj(x)
-        return x
+        x = self.act_fn(self.gate_proj(x)) * self.up_proj(x)
+        return self.down_proj(x)
 
 
 class VisionLanguageModel(nn.Module):
@@ -67,14 +67,15 @@ class VisionLanguageModel(nn.Module):
         
         self.projector = VisionProjector(4 * vision_dim, hidden_dim)
 
-    def forward(
+    def _create_inputs_embeds(
         self,
         pixel_values: torch.Tensor,
-        input_ids: torch.Tensor,
         attention_mask: torch.Tensor,
+        input_ids: torch.Tensor,
         labels: torch.Tensor | None = None,
-    ) -> tuple[torch.Tensor, torch.Tensor | None]:
-        
+    ) -> torch.Tensor:
+        """Create input embeddings by replacing image token embeddings with projected vision embeddings."""
+
         # Process images through vision encoder
         vision_outputs = self.vision_encoder(pixel_values=pixel_values).last_hidden_state  ## (batch_size, 196, 768)
         vision_embeds = vision_outputs.view(vision_outputs.size(0), vision_outputs.size(1) // 4, -1)  ## (batch_size, 196/4 = 49, 4*768)
@@ -82,31 +83,86 @@ class VisionLanguageModel(nn.Module):
         # Project vision embeddings to language model hidden size
         projected_embeds = self.projector(vision_embeds)  ## (batch_size, 49, 576)
 
-        # Prepare inputs for language model
-        inputs_embeds = self.language_model.get_input_embeddings()(input_ids)
+        # Project text embeddings from the embedding table
+        text_embeds = self.language_model.get_input_embeddings()(input_ids)
 
-        # # Replace image token embeddings with projected vision embeddings
-        mask = (input_ids == self.image_token_id)
-        inputs_embeds[mask] = projected_embeds.view(-1, projected_embeds.size(-1)).to(inputs_embeds.dtype)
+        # Replace image token embeddings with projected vision embeddings
+        inputs_embeds = []
+        new_labels = []
+        new_attention_mask = []
+        for batch_idx in range(input_ids.size(0)):
+            embds = text_embeds[batch_idx]
+            img_token_pos = (input_ids[batch_idx] == self.image_token_id).nonzero(as_tuple=True)[0]
+            if len(img_token_pos) > 0:
+                img_token_pos = img_token_pos[0].item()
+                prefix_embeds = embds[:img_token_pos, :]  # Embeddings before image token
+                suffix_embeds = embds[img_token_pos + 1:, :]  # Embeddings after image token
+                new_embeds = torch.cat([prefix_embeds, projected_embeds[batch_idx].to(dtype=embds.dtype), suffix_embeds], dim=0)
+                inputs_embeds.append(new_embeds)
+
+                new_mask = torch.cat([attention_mask[batch_idx, :img_token_pos], torch.ones(projected_embeds.size(1), device=attention_mask.device, dtype=attention_mask.dtype), attention_mask[batch_idx, img_token_pos + 1:]], dim=0)
+                new_attention_mask.append(new_mask)
+
+                if labels is not None:
+                    lbls = labels[batch_idx]
+                    prefix_labels = lbls[:img_token_pos]
+                    suffix_labels = lbls[img_token_pos + 1:]
+                    new_lbls = torch.cat([prefix_labels, torch.tensor([-100]*projected_embeds.size(1), device=lbls.device, dtype=lbls.dtype), suffix_labels], dim=0)
+                    new_labels.append(new_lbls)
+            else:
+                inputs_embeds.append(embds)
+                new_attention_mask.append(attention_mask[batch_idx])
+                if labels is not None:
+                    new_labels.append(labels[batch_idx])
         
+        # Stack the list of embeddings into a single tensor
+        inputs_embeds = torch.stack(inputs_embeds)
+        attention_mask = torch.stack(new_attention_mask)
+        if labels is not None:
+            labels = torch.stack(new_labels)
+            del new_labels  # free up memory
+
+        del vision_outputs, vision_embeds, projected_embeds, text_embeds, new_attention_mask # free up memory
+        return inputs_embeds, attention_mask, labels
+
+    def forward(
+        self,
+        pixel_values: torch.Tensor,
+        input_ids: torch.Tensor,
+        attention_mask: torch.Tensor,
+        labels: torch.Tensor | None = None,
+        ignore_index: int = -100,
+    ) -> tuple[torch.Tensor, torch.Tensor | None]:
+        """Forward pass of the Vision-Language Model."""
+
+        # Create inputs_embeds by replacing image token embeddings with projected vision embeddings
+        inputs_embeds, attention_mask, labels = self._create_inputs_embeds(pixel_values, attention_mask, input_ids, labels)
 
         # Forward pass through language model
         outputs = self.language_model(inputs_embeds=inputs_embeds, attention_mask=attention_mask)
         logits = outputs.logits
 
-        shift_logits = logits[..., :-1, :].contiguous()      # drop last token
-        shift_labels = labels[..., 1:].contiguous()  # drop first token
-
         loss = None
         if labels is not None:
-            loss = F.cross_entropy(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1), ignore_index=-100)
+            shift_logits = logits[..., :-1, :].contiguous()
+            shift_labels = labels[..., 1:].contiguous()
+            loss = F.cross_entropy(
+                shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1), 
+                ignore_index=ignore_index
+            )
         
         return logits, loss
     
     def from_pretrained_projector(self, projector_path: str) -> "VisionLanguageModel":
+        """Load pretrained weights for the projector module."""
         state_dict = torch.load(projector_path, map_location='cpu')
         self.projector.load_state_dict(state_dict)
         return self
+    
+    @property
+    def device(self) -> torch.device:
+        """Return the device of the model."""
+        return self.vision_encoder.device
 
     @torch.no_grad()
     def generate(
@@ -116,24 +172,11 @@ class VisionLanguageModel(nn.Module):
         attention_mask: torch.Tensor,
         max_new_tokens: int = 50,
     ) -> torch.Tensor:
-        vision_outputs = self.vision_encoder(pixel_values=pixel_values).last_hidden_state  ## (batch_size, 196, 768)
-        vision_embeds = vision_outputs.view(vision_outputs.size(0), vision_outputs.size(1) // 4, -1)  ## (batch_size, 196/4 = 49, 4*768)
+        """Generate text given image and input prompt."""
+        inputs_embeds, attention_mask, _ = self._create_inputs_embeds(pixel_values, attention_mask, input_ids)
 
-        # Project vision embeddings to language model hidden size
-        projected_embeds = self.projector(vision_embeds)  ## (batch_size, 49, 576)
-
-        # Project text embeddings from the embedding table
-        inputs_embeds = self.language_model.get_input_embeddings()(input_ids)
-
-        # Replace image token embeddings with projected vision embeddings
-        mask = (input_ids == self.image_token_id)
-        inputs_embeds[mask] = projected_embeds.view(-1, projected_embeds.size(-1)).to(inputs_embeds.dtype)
-
-        generated_ids = self.language_model.generate(
+        return self.language_model.generate(
             inputs_embeds=inputs_embeds,
             attention_mask=attention_mask,
             max_new_tokens=max_new_tokens,
         )
-        return generated_ids
-    
-

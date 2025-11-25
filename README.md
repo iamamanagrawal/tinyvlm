@@ -64,7 +64,7 @@ The checkpoint for the modality projector can be found [here](https://drive.goog
 | <img src="assets/train_loss.png" alt="Sample 1" width="400"> | <img src="assets/val_loss.png" alt="Sample 1" width="400"> | <img src="assets/lr.png" alt="Sample 1" width="400"> | <img src="assets/grad_norm.png" alt="Sample 1" width="400"> |
 -----------
 
-You can also test the inference and the performace by running ``` python tests/infer.py```. The following is the output generation.
+You can also test the inference and the performace by running ``` python -m tests.infer```. The following is the output generation.
 
 ```txt
 === Inference Example buildings.png ===
@@ -82,6 +82,17 @@ Generated Text: The beach is a popular destination for beach lovers, and the bea
 ````
 
 The result shows that the mapping is doing decent, atleast it tries to understand a high level understanding of images which is good considering the size of the model. But for some images, the model doesn't generate anything. So, there is a good room for improvement in terms of pretrained model choices, modality projector architecture, dataset chosen (since, its bit noisy) and training configurations!
+
+#### Update 
+
+I also tried using SmolLM2-360M-Instruct as the pretrained LLM to train the modality projector. Here are the training statistics.
+
+| Training Loss | Validation Loss | Learning Rate | Gradient Norm |
+|---|---|---|---|
+| <img src="assets/train_loss_360m.png" alt="Sample 1" width="400"> | <img src="assets/val_loss_360m.png" alt="Sample 1" width="400"> | <img src="assets/train_lr_360m.png" alt="Sample 1" width="400"> | <img src="assets/grad_norm_360m.png" alt="Sample 1" width="400"> |
+-----------
+
+The model attained a higher loss in comparison to SmolLM2-135M though.
 
 ### ToDos
 

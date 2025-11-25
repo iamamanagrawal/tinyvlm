@@ -11,28 +11,27 @@ from transformers import AutoTokenizer, SiglipProcessor
 
 from src.utils import TOKENS
 
-def chat_template(data: dict, path: str, image_prompt_template: str) -> dict:
+def chat_template(data: dict, path: str) -> dict:
     """Apply chat template to the conversation with image tokens."""
-    text = ""
-    for message in data['conversations']:
-        role = message["from"] if "from" in message else message['role']
-        content = message["value"] if "value" in message else message['content']
-        if role == "human":
-            text += f"{TOKENS['im_start']}user\n{content}{TOKENS['im_end']}\n"
-        elif role == "gpt":
-            text += f"{TOKENS['im_start']}assistant\n{content}{TOKENS['im_end']}\n"
-    text = text.replace("<image>", image_prompt_template)
+
+    assert len(data['conversations']) == 2, "Each sample must have exactly two conversation turns."
+    assert data['conversations'][0]['from'] == 'human', "First turn must be from human."
+    assert data['conversations'][1]['from'] == 'gpt', "Second turn must be from assistant."
+
+    text = f"{TOKENS['im_start']}user\n{data['conversations'][0]['value']}\n{TOKENS['im_end']}\n{TOKENS['im_start']}assistant\n"
+    label = f"{data['conversations'][1]['value']}\n{TOKENS['im_end']}"
 
     return {
         "text": text,
+        "labels": label,
         "image": f"{path}/images/{data['image']}"
     }
 
-def load_dataset(path: str, image_prompt_template: str) -> list:
+def load_dataset(path: str) -> list:
     """Load dataset from a JSON file and apply chat template."""
     with open(f"{path}/chat.json", "r") as f:
         data = json.load(f)
-    data = [chat_template(sample, path, image_prompt_template) for sample in data]
+    data = [chat_template(sample, path) for sample in data]
     return data
 
 
@@ -42,8 +41,9 @@ class DataLoaderLite:
             data: list, 
             tokenizer: AutoTokenizer,
             vision_processor: SiglipProcessor,
-            batch_size: int = 16
+            batch_size: int
         ) -> None:
+        """A lightweight dataloader with collate function for variable sequence lengths."""
 
         ## shuffle the data in-place
         self.data = data
@@ -53,45 +53,45 @@ class DataLoaderLite:
         self.tokenizer = tokenizer
         self.vision_processor = vision_processor
         self.batch_size = batch_size
+        self.num_batches = (len(data) + batch_size - 1) // batch_size
 
         ## iterator
-        self.index = 0
-        self.num_batches = (len(data) + batch_size - 1) // batch_size
-        self.response_token = f"{TOKENS['im_start']}assistant"
-            
+        self.index = 0            
 
     def next_batch(self):
-        if self.index >= len(self.data):
-            self.index = 0  # reset for next epoch
+        """Get the next batch of data."""
+        if self.index + self.batch_size >= len(self.data):
+            index = self.index
+            self.index = 0
+            return self.collate_fn(self.data[index:])
         batch = self.data[self.index:self.index + self.batch_size]
         self.index += self.batch_size
-        return batch
+        return self.collate_fn(batch)
     
     def collate_fn(self, batch: list) -> dict:
+        """Collate function to handle variable sequence lengths."""
         texts = [item['text'] for item in batch]
+        labels = [item['labels'] for item in batch]
         images = [item['image'] for item in batch]
 
-        tokenzied_texts = self.tokenizer(
-            texts,
-            padding='longest',
-            truncation=True,
-            return_tensors='pt'
+        prompts = [t + l for t, l in zip(texts, labels)]
+        tokenized_prompts = self.tokenizer(
+            prompts,
+            return_tensors='pt',
+            padding="longest",
         )
 
-        input_ids = tokenzied_texts.input_ids
-        attention_mask = tokenzied_texts.attention_mask
+        input_ids = tokenized_prompts.input_ids
+        attention_mask = tokenized_prompts.attention_mask
 
         labels = input_ids.clone()
+        for idx, text in enumerate(texts):
+            prompt_ids = self.tokenizer(text).input_ids
+            labels[idx, :len(prompt_ids)] = -100
         labels[labels == self.tokenizer.pad_token_id] = -100
-        parts = [text.split(self.response_token)[0] for text in texts]
-        for i, part in enumerate(parts):
-            part_ids = self.tokenizer(
-                part,
-                return_tensors='pt'
-            ).input_ids
-            labels[i, :part_ids.size(1)] = -100  # Mask out the prompt part
 
         pixel_values = self.vision_processor(images=images, return_tensors="pt").pixel_values
+
         return {
             "input_ids": input_ids,
             "attention_mask": attention_mask,

@@ -1,19 +1,18 @@
 """
     Main script to train a Vision-Language Model (VLM) using a specified dataset.
 """
+import torch
 import logging
 from dataclasses import dataclass, field
-
 
 from src.model import VisionLanguageModel
 from src.ingest import DataLoaderLite, load_dataset
 from src.train import Trainer
 from src.utils import (
-    LANGUAGE_MODEL_PATH, NUM_IMAGE_TOKENS, 
-    SPECIAL_TOKENS, VISION_ENCODER_PATH,
-    LOCAL_DATASET_PATH, IMAGE_PROMPT_TEMPLATE,
+    LANGUAGE_MODEL_PATH, SPECIAL_TOKENS, VISION_ENCODER_PATH, LOCAL_DATASET_PATH,
     get_language_model_and_tokenizer, get_vision_processor_and_model
 )
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -27,19 +26,18 @@ class VLMConfig:
     vision_encoder_path: str = VISION_ENCODER_PATH
     language_model_path: str = LANGUAGE_MODEL_PATH
     special_tokens: dict = field(default_factory=lambda: SPECIAL_TOKENS)
-    num_image_tokens: int = NUM_IMAGE_TOKENS
 
     ## dataset configuration
     dataset_path: str = LOCAL_DATASET_PATH
-    image_prompt_template: str = IMAGE_PROMPT_TEMPLATE
 
     ## training configurations
     test_size: float = 0.1
     batch_size: int = 96
     learning_rate: float = 1e-3
-    gradient_accumulation_steps: int = 8
+    gradient_accumulation_steps: int = 4
     max_norm: float = 1.0
-    device: str = "cuda"
+    device: str = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+    num_epochs: int = 1
 
 def main():
 
@@ -52,13 +50,13 @@ def main():
     model = VisionLanguageModel(
         language_model=language_model,
         vision_encoder=vision_model,
-        image_token_id=tokenizer(tokenizer.image_token).input_ids[0],
+        image_token_id=tokenizer.convert_tokens_to_ids(tokenizer.image_token),
         freeze_vision=True,
         freeze_language=True,
     )
 
     ## load dataset, split and create dataloaders
-    dataset = load_dataset(config.dataset_path, config.image_prompt_template)
+    dataset = load_dataset(config.dataset_path)
 
     test_size = int(config.test_size * len(dataset))
     train_dataset = dataset[:-test_size]
@@ -81,8 +79,9 @@ def main():
         gradient_accumulation_steps=config.gradient_accumulation_steps,
         max_norm=config.max_norm,
         device=config.device,
+        num_epochs=config.num_epochs,
     )
-    trainer.train_epoch()
+    trainer.train()
 
     return None
 

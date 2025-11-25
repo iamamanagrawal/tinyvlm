@@ -6,7 +6,7 @@ import torch
 from transformers import AutoTokenizer, SiglipProcessor
 
 from src.model import VisionLanguageModel
-from src.utils import TOKENS, IMAGE_PROMPT_TEMPLATE
+from src.utils import TOKENS
 
 def inference(
         model: VisionLanguageModel,
@@ -25,12 +25,12 @@ def inference(
     for turn in conversations["conversations"]:
         prompt += f"{TOKENS['im_start']}{turn['role']}\n{turn['content']}\n{TOKENS['im_end']}\n"
     prompt += f"{TOKENS['im_start']}assistant\n"
-    prompt = prompt.replace("<image>", IMAGE_PROMPT_TEMPLATE)
 
     ## tokenize the prompt
     tokenized = tokenizer(prompt, return_tensors="pt")
-    input_ids = tokenized.input_ids
-    attention_mask = tokenized.attention_mask
+    input_ids = tokenized.input_ids.to(model.device)
+    attention_mask = tokenized.attention_mask.to(model.device)
+    pixel_values = pixel_values.to(model.device)
 
     ## generate text
     with torch.no_grad():
