@@ -79,7 +79,7 @@ Generated Text: The birds are perched on the branches of a cherry tree, their be
 Image Path: beach.png
 Generated Text: The beach is a popular destination for beach lovers, and the beach itself is a popular destination for people who love to relax and unwind. The beach is a popular destination for people who love to relax and unwind. The beach is a popular destination
 =========================
-````
+```
 
 The result shows that the mapping is doing decent, atleast it tries to understand a high level understanding of images which is good considering the size of the model. But for some images, the model doesn't generate anything. So, there is a good room for improvement in terms of pretrained model choices, modality projector architecture, dataset chosen (since, its bit noisy) and training configurations!
 
@@ -93,6 +93,37 @@ I also tried using SmolLM2-360M-Instruct as the pretrained LLM to train the moda
 -----------
 
 The model attained a higher loss in comparison to SmolLM2-135M though.
+
+Here is how SmolLM2-360M-Instruct works on the examples images
+
+```txt
+=== Inference Example buildings.png ===
+Image Path: buildings.png
+Generated Text: the image is a time lapse of the sunset over the cityscape of the skyline of the city. The sky is painted with hues of orange and pink, and the clouds are streaked across the sky. The cityscape is illuminated by the sun
+=========================
+=== Inference Example bird.png ===
+Image Path: bird.png
+Generated Text: birds in a tree with a beautiful pink flower in the background
+
+birds in a tree with a beautiful pink flower in the background
+
+birds in a tree with a beautiful pink flower in the background
+
+birds in a tree with a beautiful pink
+=========================
+=== Inference Example beach.png ===
+Image Path: beach.png
+Generated Text: the beach is a popular destination for many people.
+
+the beach is a popular destination for many people.
+
+the beach is a popular destination for many people.
+
+the beach is a popular destination for many people.
+
+the beach
+=========================
+```
 
 ### ToDos
 
