@@ -66,7 +66,7 @@ The checkpoint for the modality projector can be found [here](https://drive.goog
 
 You can also test the inference and the performace by running ``` python -m tests.infer```. The following is the output generation.
 
-```txt
+```bash
 === Inference Example buildings.png ===
 Image Path: buildings.png
 Generated Text: a view of the skyline with buildings and a sunset over city – time lapse shot - 120 seconds .
@@ -97,7 +97,7 @@ The model attained a higher loss in comparison to SmolLM2-135M though.
 
 Here is how SmolLM2-360M-Instruct works on the examples images
 
-```txt
+```bash
 === Inference Example buildings.png ===
 Image Path: buildings.png
 Generated Text: The image depicts a cityscape with an early morning sunrise over the skyscrapers of downtown Manhattan, taken during sunset on August 23rd at approximately two hours before local time. The sky is gradually illuminated by orange and pink hues as sunlight casts its golden
