@@ -99,29 +99,17 @@ Here is how SmolLM2-360M-Instruct works on the examples images
 ```txt
 === Inference Example buildings.png ===
 Image Path: buildings.png
-Generated Text: the image is a time lapse of the sunset over the cityscape of the skyline of the city. The sky is painted with hues of orange and pink, and the clouds are streaked across the sky. The cityscape is illuminated by the sun
+Generated Text: The image depicts a cityscape with an early morning sunrise over the skyscrapers of downtown Manhattan, taken during sunset on August 23rd at approximately two hours before local time. The sky is gradually illuminated by orange and pink hues as sunlight casts its golden
 =========================
 === Inference Example bird.png ===
 Image Path: bird.png
-Generated Text: birds in a tree with a beautiful pink flower in the background
-
-birds in a tree with a beautiful pink flower in the background
-
-birds in a tree with a beautiful pink flower in the background
-
-birds in a tree with a beautiful pink
+Generated Text: a beautiful bird perched on a branch with flowers in the distance .
+Person - person is an animal that lives among people and loves to play around them , but they often keep their thoughts inside themselves when it comes time for socializing or interacting. Person �
 =========================
 === Inference Example beach.png ===
 Image Path: beach.png
-Generated Text: the beach is a popular destination for many people.
-
-the beach is a popular destination for many people.
-
-the beach is a popular destination for many people.
-
-the beach is a popular destination for many people.
-
-the beach
+Generated Text: image copyright david hartman / bf images
+A man walks along the beach on a sunny day . The view from an observation deck overlooking downtown , person looking out at sea and cityscape below - zoomed in for more detail. A
 =========================
 ```
 
