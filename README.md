@@ -69,15 +69,16 @@ You can also test the inference and the performace by running ``` python -m test
 ```txt
 === Inference Example buildings.png ===
 Image Path: buildings.png
-Generated Text: the skyline of the city is a breathtaking sight, with the city skyline rising above the city skyline, creating a stunning view of the city skyline. the city skyline is a stunning sight, with the city skyline rising above the
+Generated Text: a view of the skyline with buildings and a sunset over city – time lapse shot - 120 seconds .
 =========================
 === Inference Example bird.png ===
 Image Path: bird.png
-Generated Text: The birds are perched on the branches of a cherry tree, their beaks and beaks of feathers glistening in the sunlight. The birds are perched on the branches of a cherry tree, their beaks and beaks of feathers glistening
+Generated Text: picture of birds in a tree – one with its beak open, another pecking at the same fruit while it flies through branches. The scene is simply stunning and shows just how beautiful nature can be when you have an abundance to enjoy!
+by .
 =========================
 === Inference Example beach.png ===
 Image Path: beach.png
-Generated Text: The beach is a popular destination for beach lovers, and the beach itself is a popular destination for people who love to relax and unwind. The beach is a popular destination for people who love to relax and unwind. The beach is a popular destination
+Generated Text: sounds like a perfect summer afternoon . the beach is bustling with people and cars going about their business as they enjoy some time to themselves. at noon, many of us are also out walking around our respective properties in order not be too far away from
 =========================
 ```
 
