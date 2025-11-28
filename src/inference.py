@@ -13,7 +13,11 @@ def inference(
         conversations: dict,
         vision_processor: SiglipProcessor,
         tokenizer: AutoTokenizer,
-        max_new_tokens: int = 50,
+        max_new_tokens: int = 150,
+        temperature: float = 0.7,
+        top_p: float = 0.9,
+        do_sample: bool = True,
+        repetition_penalty: float = 2.0,
     ) -> str:
     
     ## preprocess the image
@@ -39,6 +43,10 @@ def inference(
             input_ids=input_ids,
             attention_mask=attention_mask,
             max_new_tokens=max_new_tokens,
+            temperature=temperature,
+            top_p=top_p,
+            do_sample=do_sample,
+            repetition_penalty=repetition_penalty,
         )
     
     generated_text = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]

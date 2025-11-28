@@ -171,6 +171,10 @@ class VisionLanguageModel(nn.Module):
         input_ids: torch.Tensor,
         attention_mask: torch.Tensor,
         max_new_tokens: int = 50,
+        temperature: float = 0.7,
+        top_p: float = 0.9,
+        do_sample: bool = True,
+        repetition_penalty: float = 2.0,
     ) -> torch.Tensor:
         """Generate text given image and input prompt."""
         inputs_embeds, attention_mask, _ = self._create_inputs_embeds(pixel_values, attention_mask, input_ids)
@@ -179,4 +183,8 @@ class VisionLanguageModel(nn.Module):
             inputs_embeds=inputs_embeds,
             attention_mask=attention_mask,
             max_new_tokens=max_new_tokens,
+            temperature=temperature,
+            top_p=top_p,
+            do_sample=do_sample,
+            repetition_penalty=repetition_penalty,
         )
