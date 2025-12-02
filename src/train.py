@@ -50,7 +50,7 @@ class Trainer:
         self.total_steps = (self.train_dataloader.num_batches // self.gradient_accumulation_steps + 1) * self.num_epochs
         self.scheduler = get_cosine_schedule_with_warmup(
             self.optimizer,
-            num_warmup_steps=int(self.total_steps * 0.1),
+            num_warmup_steps=int(self.total_steps * 0.05),
             num_training_steps=self.total_steps
         )
 
@@ -100,8 +100,9 @@ class Trainer:
 
                 ## added a try and except condition to mitigate OOM issue
                 try:
-                    _, loss = self.model(**inputs)
-                    loss /= self.gradient_accumulation_steps
+                    with torch.amp.autocast(device_type=self.device, dtype=torch.bfloat16):
+                        _, loss = self.model(**inputs)
+                        loss /= self.gradient_accumulation_steps
                     loss.backward()
                     gradient_accum_loss += loss.item()
                 except RuntimeError as e:
@@ -123,7 +124,8 @@ class Trainer:
             inputs = {k: v.to(self.device) for k, v in batch.items()}
             with torch.no_grad():
                 try:
-                    _, val_loss = self.model(**inputs)
+                    with torch.amp.autocast(device_type=self.device, dtype=torch.bfloat16):
+                        _, val_loss = self.model(**inputs)
                 except RuntimeError as e:
                     if self.device == "cuda":
                         torch.cuda.empty_cache()

@@ -44,12 +44,14 @@ class VisionLanguageModel(nn.Module):
         image_token_id: int,
         freeze_vision: bool = True,
         freeze_language: bool = True,
+        downscale_factor: int = 2,
     ) -> None:
         super(VisionLanguageModel, self).__init__()
 
         self.vision_encoder = vision_encoder
         self.language_model = language_model
         self.image_token_id = image_token_id
+        self.downscale_factor = downscale_factor
 
         # Enhanced projection layer with residual connections and dropout
         vision_dim = self.vision_encoder.config.hidden_size
@@ -65,7 +67,7 @@ class VisionLanguageModel(nn.Module):
             for param in self.language_model.parameters():
                 param.requires_grad = False
         
-        self.projector = VisionProjector(4 * vision_dim, hidden_dim)
+        self.projector = VisionProjector((self.downscale_factor ** 2) * vision_dim, hidden_dim)
 
     def _create_inputs_embeds(
         self,
@@ -78,7 +80,12 @@ class VisionLanguageModel(nn.Module):
 
         # Process images through vision encoder
         vision_outputs = self.vision_encoder(pixel_values=pixel_values).last_hidden_state  ## (batch_size, 196, 768)
-        vision_embeds = vision_outputs.view(vision_outputs.size(0), vision_outputs.size(1) // 4, -1)  ## (batch_size, 196/4 = 49, 4*768)
+        
+        ## apply pixel unshuffle to reduce spatial dimensions
+        batch_size, seq_len, vision_dim = vision_outputs.size()
+        vision_embeds = vision_outputs.view(batch_size, int(seq_len**0.5), int(seq_len**0.5), vision_dim).permute(0, 3, 1, 2)  ## (batch_size, 768, 14, 14)
+        vision_embeds = F.pixel_unshuffle(vision_embeds, downscale_factor=self.downscale_factor)  ## (batch_size, 768*4, 7, 7)
+        vision_embeds = vision_embeds.permute(0, 2, 3, 1).contiguous().view(batch_size, seq_len // (self.downscale_factor ** 2), vision_dim * (self.downscale_factor ** 2))  ## (batch_size, 49, 3072)
 
         # Project vision embeddings to language model hidden size
         projected_embeds = self.projector(vision_embeds)  ## (batch_size, 49, 576)

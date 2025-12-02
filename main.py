@@ -33,11 +33,14 @@ class VLMConfig:
     ## training configurations
     test_size: float = 0.1
     batch_size: int = 96
-    learning_rate: float = 1e-3
-    gradient_accumulation_steps: int = 4
+    learning_rate: float = 5e-3
+    gradient_accumulation_steps: int = 8
     max_norm: float = 1.0
     device: str = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
-    num_epochs: int = 1
+    num_epochs: int = 2
+    compile: bool = True
+
+torch.set_float32_matmul_precision('high')
 
 def main():
 
@@ -54,6 +57,10 @@ def main():
         freeze_vision=True,
         freeze_language=True,
     )
+    if config.compile:
+        logging.info("Compiling model for faster training...")
+        model = torch.compile(model)
+        logging.info("Model compilation completed.")
 
     ## load dataset, split and create dataloaders
     dataset = load_dataset(config.dataset_path)
