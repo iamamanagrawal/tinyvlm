@@ -29,14 +29,6 @@ VISION_ENCODER_PATH = "models/siglip-base-patch16-224"
 LANGUAGE_MODEL_PATH = "models/SmolLM2-135M-Instruct"
 PROJECTOR_PATH = "models/projection_checkpoint.pth"
 
-## Example Prompt
-EXAMPLE_PROMPT = {
-    "conversations": [
-        {"from": "human", "value": "<image>\nDescribe the image."},
-    ],
-    "image": "example.jpg"
-}
-
 
 def get_language_model_and_tokenizer(path: str, special_tokens: dict = SPECIAL_TOKENS):
     tokenizer = AutoTokenizer.from_pretrained(path)
